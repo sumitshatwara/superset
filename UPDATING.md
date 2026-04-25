@@ -24,6 +24,20 @@ assists people when migrating to a new version.
 
 ## Next
 
+### GUEST_TOKEN_JWT_SECRET is no longer hardcoded (CWE-321)
+
+The `GUEST_TOKEN_JWT_SECRET` configuration value, used to sign guest JWT tokens for embedded dashboards, is no longer hardcoded. It reads from the `SUPERSET_GUEST_TOKEN_JWT_SECRET` environment variable instead.
+
+**Breaking change for production deployments:** Superset will raise a `RuntimeError` at startup if `GUEST_TOKEN_JWT_SECRET` is still set to the old default value (`"test-guest-secret-change-me"`) or is empty. Debug and testing environments are exempt and will only log a warning.
+
+**Action required:** Before upgrading, set a strong random secret:
+
+```bash
+export SUPERSET_GUEST_TOKEN_JWT_SECRET=$(openssl rand -base64 42)
+```
+
+Alternatively, override `GUEST_TOKEN_JWT_SECRET` in your `superset_config.py`.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
