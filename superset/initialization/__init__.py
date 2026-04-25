@@ -37,7 +37,7 @@ from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.constants import CHANGE_ME_GUEST_TOKEN_SECRET, CHANGE_ME_SECRET_KEY
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
@@ -654,6 +654,27 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             logger.error("Refusing to start due to insecure SECRET_KEY")
             sys.exit(1)
 
+    def check_guest_token_jwt_secret(self) -> None:
+        if self.config["GUEST_TOKEN_JWT_SECRET"] in (
+            CHANGE_ME_GUEST_TOKEN_SECRET,
+            "",
+        ):
+            if (
+                self.superset_app.debug
+                or self.superset_app.config["TESTING"]
+                or is_test()
+            ):
+                logger.warning(
+                    "Default GUEST_TOKEN_JWT_SECRET detected. Set the "
+                    "SUPERSET_GUEST_TOKEN_JWT_SECRET environment variable to a "
+                    "strong random value, ex: openssl rand -base64 42"
+                )
+                return
+            raise RuntimeError(
+                "SUPERSET_GUEST_TOKEN_JWT_SECRET must be set to a strong random "
+                "value. Generate one with: openssl rand -base64 42"
+            )
+
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
             Session(self.superset_app)
@@ -732,6 +753,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         self.pre_init()
         self.check_secret_key()
+        self.check_guest_token_jwt_secret()
         self.configure_session()
         # Configuration of logging must be done first to apply the formatter properly
         self.configure_logging()

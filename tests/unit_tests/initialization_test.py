@@ -18,9 +18,11 @@
 import os
 from unittest.mock import MagicMock, patch
 
+import pytest
 from sqlalchemy.exc import OperationalError
 
 from superset.app import AppRootMiddleware, create_app, SupersetApp
+from superset.constants import CHANGE_ME_GUEST_TOKEN_SECRET
 from superset.initialization import SupersetAppInitializer
 
 
@@ -188,6 +190,48 @@ class TestSupersetAppInitializer:
             app_initializer._db_uri_cache
             == "postgresql://realuser:realpass@realhost:5432/realdb"
         )
+
+
+class TestCheckGuestTokenJwtSecret:
+    """Tests for the GUEST_TOKEN_JWT_SECRET startup guard."""
+
+    def _make_initializer(
+        self,
+        secret: str,
+        *,
+        testing: bool = False,
+        debug: bool = False,
+    ) -> SupersetAppInitializer:
+        mock_app = MagicMock()
+        mock_app.config = {"GUEST_TOKEN_JWT_SECRET": secret, "TESTING": testing}
+        mock_app.debug = debug
+        return SupersetAppInitializer(mock_app)
+
+    def test_raises_runtime_error_for_default_secret_in_production(self) -> None:
+        initializer = self._make_initializer(CHANGE_ME_GUEST_TOKEN_SECRET)
+        with pytest.raises(RuntimeError, match="SUPERSET_GUEST_TOKEN_JWT_SECRET"):
+            initializer.check_guest_token_jwt_secret()
+
+    def test_raises_runtime_error_for_empty_secret_in_production(self) -> None:
+        initializer = self._make_initializer("")
+        with pytest.raises(RuntimeError, match="SUPERSET_GUEST_TOKEN_JWT_SECRET"):
+            initializer.check_guest_token_jwt_secret()
+
+    @patch("superset.initialization.logger")
+    def test_warns_for_default_secret_in_testing(self, mock_logger: MagicMock) -> None:
+        initializer = self._make_initializer(CHANGE_ME_GUEST_TOKEN_SECRET, testing=True)
+        initializer.check_guest_token_jwt_secret()
+        mock_logger.warning.assert_called_once()
+
+    @patch("superset.initialization.logger")
+    def test_warns_for_default_secret_in_debug(self, mock_logger: MagicMock) -> None:
+        initializer = self._make_initializer(CHANGE_ME_GUEST_TOKEN_SECRET, debug=True)
+        initializer.check_guest_token_jwt_secret()
+        mock_logger.warning.assert_called_once()
+
+    def test_accepts_custom_secret(self) -> None:
+        initializer = self._make_initializer("my-secure-random-secret-value")
+        initializer.check_guest_token_jwt_secret()
 
 
 class TestCreateAppRoot:
