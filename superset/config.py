@@ -339,7 +339,8 @@ SCHEDULED_QUERIES: dict[str, Any] = {}
 # feature is on by default to make Superset secure by default, but you should
 # fine tune the limits to your needs. You can read more about the different
 # parameters here: https://flask-limiter.readthedocs.io/en/stable/configuration.html
-RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
+# Secure by default: rate limiting is enabled everywhere except explicit local dev
+RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") != "development"
 RATELIMIT_APPLICATION = "50 per second"
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
