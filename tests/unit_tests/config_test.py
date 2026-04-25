@@ -312,3 +312,25 @@ def test_full_setting(
     assert dttm_col.is_dttm
     assert dttm_col.python_date_format == "epoch_s"
     assert dttm_col.expression == "CAST(dttm as INTEGER)"
+
+
+def test_session_cookie_secure_production(monkeypatch: pytest.MonkeyPatch) -> None:
+    """SESSION_COOKIE_SECURE is True when SUPERSET_ENV=production."""
+    monkeypatch.setenv("SUPERSET_ENV", "production")
+    import importlib
+
+    import superset.config as cfg
+
+    importlib.reload(cfg)
+    assert cfg.SESSION_COOKIE_SECURE is True
+
+
+def test_session_cookie_secure_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """SESSION_COOKIE_SECURE is False when SUPERSET_ENV is unset."""
+    monkeypatch.delenv("SUPERSET_ENV", raising=False)
+    import importlib
+
+    import superset.config as cfg
+
+    importlib.reload(cfg)
+    assert cfg.SESSION_COOKIE_SECURE is False
