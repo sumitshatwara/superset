@@ -30,7 +30,7 @@ Embedding is done by inserting an iframe, containing a Superset page, into the h
 ## Prerequisites
 
 * Activate the feature flag `EMBEDDED_SUPERSET`
-* Set a strong password in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py). Be aware that its default value must be changed in production.
+* Set the `SUPERSET_GUEST_TOKEN_JWT_SECRET` environment variable to a strong random value (e.g. `openssl rand -base64 42`). This is used to sign guest JWT tokens. Superset will refuse to start in production if this is not set. Alternatively, override `GUEST_TOKEN_JWT_SECRET` in your `superset_config.py`.
 
 ## Embedding a Dashboard
 
@@ -121,8 +121,8 @@ Example `POST /security/guest_token` payload:
 ```
 
 Alternatively, a guest token can be created directly in your app without interacting with the Superset API.
-To do this, you should update the `GUEST_TOKEN_JWT_SECRET`
-in the Superset [config.py](https://github.com/apache/superset/blob/master/superset/config.py). Also set the
+To do this, set the `SUPERSET_GUEST_TOKEN_JWT_SECRET` environment variable (or override `GUEST_TOKEN_JWT_SECRET`
+in your `superset_config.py`). Also set the
 `GUEST_TOKEN_JWT_AUDIENCE` variable that matches what is set for the `aud` in the JSON payload:
 
 ```
