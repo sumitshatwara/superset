@@ -340,3 +340,28 @@ def test_ratelimit_enabled_default(env_value: str | None, expected: bool) -> Non
 
     # Restore module to avoid side-effects on other tests
     importlib.reload(cfg)
+
+
+@pytest.mark.parametrize(
+    "env_value,expected",
+    [
+        ("production", True),
+        ("staging", False),
+        (None, False),
+        ("development", False),
+    ],
+)
+def test_session_cookie_secure_default(env_value: str | None, expected: bool) -> None:
+    """SESSION_COOKIE_SECURE should be True only in production."""
+    env: dict[str, str] = {}
+    if env_value is not None:
+        env["SUPERSET_ENV"] = env_value
+
+    with patch.dict(os.environ, env, clear=True):
+        import superset.config as cfg
+
+        importlib.reload(cfg)
+        assert cfg.SESSION_COOKIE_SECURE is expected
+
+    # Restore module to avoid side-effects on other tests
+    importlib.reload(cfg)
