@@ -16,8 +16,11 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, redefined-outer-name, invalid-name
 
+import importlib
+import os
 from functools import partial
 from typing import Any, TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockerFixture
@@ -312,3 +315,28 @@ def test_full_setting(
     assert dttm_col.is_dttm
     assert dttm_col.python_date_format == "epoch_s"
     assert dttm_col.expression == "CAST(dttm as INTEGER)"
+
+
+@pytest.mark.parametrize(
+    "env_value,expected",
+    [
+        ("production", True),
+        ("staging", True),
+        (None, True),
+        ("development", False),
+    ],
+)
+def test_ratelimit_enabled_default(env_value: str | None, expected: bool) -> None:
+    """RATELIMIT_ENABLED should be True everywhere except explicit development."""
+    env: dict[str, str] = {}
+    if env_value is not None:
+        env["SUPERSET_ENV"] = env_value
+
+    with patch.dict(os.environ, env, clear=True):
+        import superset.config as cfg
+
+        importlib.reload(cfg)
+        assert cfg.RATELIMIT_ENABLED is expected
+
+    # Restore module to avoid side-effects on other tests
+    importlib.reload(cfg)
