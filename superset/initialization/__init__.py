@@ -654,6 +654,21 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             logger.error("Refusing to start due to insecure SECRET_KEY")
             sys.exit(1)
 
+    def check_guest_token_jwt_secret(self) -> None:
+        secret = self.config.get("GUEST_TOKEN_JWT_SECRET", "")
+        if secret:
+            return
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            logger.warning(
+                "GUEST_TOKEN_JWT_SECRET is empty; "
+                "guest token authentication will not work"
+            )
+            return
+        raise RuntimeError(
+            "SUPERSET_GUEST_TOKEN_JWT_SECRET must be set to a strong random value. "
+            "Generate one with: openssl rand -base64 42"
+        )
+
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
             Session(self.superset_app)
@@ -732,6 +747,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
         self.pre_init()
         self.check_secret_key()
+        self.check_guest_token_jwt_secret()
         self.configure_session()
         # Configuration of logging must be done first to apply the formatter properly
         self.configure_logging()
